@@ -1,13 +1,30 @@
+import csv
 import json
 import glob
 import os
+import re
 import requests
+
 from dotenv import load_dotenv, find_dotenv
+from bs4 import BeautifulSoup
+from markdown import markdown
 
 
 dotenv_path = os.path.join(os.path.dirname(__file__), '..', '.env')
 load_dotenv(dotenv_path)
+
 GITHUB_ACCESS_TOKEN = os.environ.get('GITHUB_ACCESS_TOKEN')
+EVENTS = [
+    'CommitCommentEvent',
+    'CreateEvent',
+    'WatchEvent',
+    'ForkEvent',
+    'IssueEvent',
+    'IssueCommentEvent',
+    'PullRequestEvent',
+    'PushEvent',
+    'MemberEvent',
+]
 
 
 def retrieve_repo_readme(repo):
@@ -16,32 +33,66 @@ def retrieve_repo_readme(repo):
     return response.text if response.status_code == 200 else ''
 
 
+def clean_readme(readme):
+    html = markdown(readme)
+    text = ''.join(BeautifulSoup(html, 'html.parser').findAll(text=True))
+    return re.sub('\s+', ' ', text)
+
+
 def retrieve_repo_languages(repo):
     headers = {'Authorization': 'token ' + GITHUB_ACCESS_TOKEN}
     url = f"{repo['url']}/languages"
     response = requests.get(url, headers=headers)
-    return response.text if response.status_code == 200 else ''
+    langs = (json.loads(response.text)
+             if response.status_code == 200
+             else {})
+    return '/'.join(langs.keys())
 
 
 def collect_repos_description(data_files_pattern):
+    field_names = [
+        'id',
+        'type',
+        'actor_id',
+        'actor_login',
+        'repo_id',
+        'repo_name',
+        'created_at',
+        'repo_languages',
+    ]
+
     for fname in glob.glob(data_files_pattern):
         name, ext = os.path.splitext(fname)
 
         input_file = open(fname, 'r')
-        output_file = open(f'{name}-extra{ext}', 'w')
+        output_file = open(name + '.csv', 'w')
+        readme_file = open(name + '-readme', 'w')
+
+        writer = csv.DictWriter(output_file, fieldnames=field_names)
+        writer.writeheader()
 
         for line in input_file:
             activity_record = json.loads(line)
-            readme = retrieve_repo_readme(activity_record.get('repo'))
-            langs = retrieve_repo_languages(activity_record.get('repo'))
-            json.dump({
+            # skip unnecessary event types that are not related to repos
+            if activity_record['type'] not in EVENTS:
+                continue
+
+            readme = clean_readme(
+                retrieve_repo_readme(activity_record['repo']))
+            langs = retrieve_repo_languages(activity_record['repo'])
+            data = {
                 'id': activity_record['id'],
-                'repo': {
-                    'id': activity_record['repo']['id'],
-                    'readme': readme,
-                    'languages': langs}},
-                output_file)
-            output_file.write('\n')
+                'type': activity_record['type'],
+                'actor_id': activity_record['actor']['id'],
+                'actor_login': activity_record['actor']['login'],
+                'repo_id': activity_record['repo']['id'],
+                'repo_name': activity_record['repo']['name'],
+                'created_at': activity_record['created_at'],
+                'repo_languages': langs,
+            }
+            writer.writerow(data)
+            readme_file.write(readme + '\n\n')
 
         input_file.close()
         output_file.close()
+        readme_file.close()
