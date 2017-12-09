@@ -1,0 +1,26 @@
+name: github-recommender
+
+dependencies:
+- certifi=2016.2.28=py36_0
+- openssl=1.0.2l=0
+- pip=9.0.1=py36_1
+- python=3.6.2=0
+- readline=6.2=2
+- setuptools=36.4.0=py36_1
+- sqlite=3.13.0=0
+- tk=8.5.18=0
+- wheel=0.29.0=py36_0
+- xz=5.2.3=0
+- zlib=1.2.11=0
+- pip:
+  - beautifulsoup4==4.6.0
+  - chardet==3.0.4
+  - click==6.7
+  - huey==1.5.5
+  - idna==2.6
+  - markdown==2.6.10
+  - pause==0.1.2
+  - python-dotenv==0.7.1
+  - redis==2.10.6
+  - requests==2.18.4
+  - urllib3==1.22
