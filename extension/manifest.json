@@ -1,0 +1,12 @@
+{
+  "name": "Github Recommendations",
+  "version": "1.0",
+  "manifest_version": 2,
+  "content_scripts": [
+    {
+      "matches": [ "https://github.com/" ],
+      "js": ["./jquery.js", "./github-recommendations.js"],
+      "run_at": "document_end"
+    }
+  ]
+}
