@@ -1,0 +1,91 @@
+{% extends "layout.html" %}
+{% block content %}
+<style type="text/css">
+  table td {
+    max-width: 70px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+</style>
+<h1>Users</h1>
+<table id="users"></table>
+<h1>History</h1>
+<table id="history"></table>
+<h1>Recommendations</h1>
+<table id="recommendations"></table>
+
+{% endblock %}
+
+{% block scripts %}
+<script type="text/javascript">
+  $(document).ready(function() {
+    $.ajax({
+      method: "GET",
+      url: "/users",
+      data: {
+
+      },
+      success: function(response) {
+        $('#users').dataTable({
+          "data" : response,
+          "order": [[2, "desc"]],
+          "columns" : [
+            { "data" : "user_id", "title": "Id" },
+            { "data" : "name", "title": "Name" },
+            {"data": "precision", "title": "Precision"}
+          ]
+        });
+      }
+    })
+  });
+
+  $("#users").on('click', 'tr', function() {
+    var data = $("#users").dataTable().fnGetData(this);
+    $.ajax({
+      method: "GET",
+      url: "/history",
+      data: {
+        user: data.user_id
+      },
+      success: function(response) {
+        if ($("#history").html().length > 0)
+          $("#history").dataTable().fnDestroy();
+        $('#history').dataTable({
+          "data" : response,
+          "columns" : [
+            { "data" : "permlink", "title": "Id" },
+            { "data" : "title", "title": "Title" },
+            { "data" : "parent_permlink", "title": "Parent"},
+            {"data": "topic", "title": "Topic"},
+            {"data": "like", "title": "Liked"}
+          ]
+        });
+      }
+    })
+
+    $.ajax({
+      method: "GET",
+      url: "/recommendations",
+      data: {
+        user: data.user_id
+      },
+      success: function(response) {
+        if ($("#recommendations").html().length > 0)
+          $("#recommendations").dataTable().fnDestroy();
+        $('#recommendations').dataTable({
+          "data" : response,
+          "order": [[4, "desc"]],
+          "columns" : [
+            { "data" : "post_permlink", "title": "Id" },
+            { "data": "title", "title": "Title" },
+            { "data" : "parent_permlink", "title": "Parent"},
+            { "data": "topic", "title": "Topic"},
+            { "data": "prediction", "title": "Prediction" }
+          ]
+        });
+      }
+    })
+  });
+</script>
+{% endblock %}
